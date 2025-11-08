@@ -13,6 +13,9 @@ flowchart LR
     D --> E[Frontend]
 ```
 
+# Project Structure
+
+```
 project/
 ├── extension/              # TypeScript VS Code extension
 │   └── src/
@@ -39,6 +42,7 @@ project/
 │
 └── dashboard/              # Professor dashboard (optional web UI)
     └── streamlit_app.py    # Quick dashboard with Streamlit
+```
     
 **Stuck Signals**
 
