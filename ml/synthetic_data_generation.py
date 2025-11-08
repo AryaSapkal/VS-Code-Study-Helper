@@ -53,7 +53,7 @@ class SyntheticDataGenerator:
                 'cursor_distance': np.random.normal(100, 20),
                 'cursor_entropy': np.random.normal(2.5, 0.3),
                 'error_events': np.random.randint(8, 15),
-                'unique_errors': np.random.randint(1, 3),  # same error!
+                'unique_errors': np.random.randint(1, 3),  # same error
                 'error_repeat_count': np.random.randint(5, 10),
                 'error_persistence': np.random.normal(0.8, 0.1),
                 'time_since_last_run': np.random.normal(180, 30),
