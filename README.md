@@ -25,8 +25,8 @@ flowchart LR
 
 **ML integration of stuck signals**
 
-perhaps generate synthetic simulated data, train a small model (decision tree maybe), use as heuristic
-add a "stuck?" button and log user behavior to build dataset; with each popup, add a check and X if it accurately predicted user data, to train model better
+- perhaps generate synthetic simulated data, train a small model (decision tree maybe), use as heuristic
+- add a "stuck?" button and log user behavior to build dataset; with each popup, add a check and X if it accurately predicted user data, to train model better
 
 **API integration**
 
