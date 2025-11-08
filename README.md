@@ -12,13 +12,20 @@ flowchart LR
     C --> D[Documentation MCP]
     D --> E[Frontend]
 ```
-stuck signals:
+Stuck Signals:
+
 idle time: user stops typing for a while
+
 repetitive editing: repeated backspacing + retyping
+
 cursor thrashing: jumping around with minimal progress
+
 frequent and similar error messages
+
 no code execution attempts?
+
 tab switching (if trackable)
+
 specific comments: very long comments, terms such as "todo" "fix" etc
 
 ML integration of stuck signals:
