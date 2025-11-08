@@ -12,8 +12,8 @@ flowchart LR
     C --> D[Documentation MCP]
     D --> E[Frontend]
 ```
-**Stuck Signals:
-**
+**Stuck Signals**
+
 idle time: user stops typing for a while
 
 repetitive editing: repeated backspacing + retyping
@@ -29,16 +29,16 @@ tab switching (if trackable)
 specific comments: very long comments, terms such as "todo" "fix" etc
 
 
-**ML integration of stuck signals:**
+**ML integration of stuck signals**
 
 perhaps generate synthetic simulated data, train a small model (decision tree maybe), use as heuristic
 add a "stuck?" button and log user behavior to build dataset; with each popup, add a check and X if it accurately predicted user data, to train model better
 
-**API integration:**
+**API integration**
 
 link api calls to mcp with documentation, perhaps locally downloaded docs
 
-**Frontend:**
+**Frontend**
 
 popup with "were you stuck?" button
 "hint/stuck?" button
