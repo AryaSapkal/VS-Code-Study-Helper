@@ -13,7 +13,7 @@ def main():
     
     args = parser.parse_args()
     
-    # Create output directory
+    # output dir
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -24,15 +24,15 @@ def main():
     print(f"Random seed: {args.seed}")
     print(f"Test split: {args.test_split * 100}%\n")
     
-    # Generate data
+    # data generation
     generator = SyntheticDataGenerator(seed=args.seed)
     df = generator.generate_dataset(n_samples=args.samples)
     
-    # Split into train/test
+    # train/test split
     from sklearn.model_selection import train_test_split
     train_df, test_df = train_test_split(df, test_size=args.test_split, random_state=args.seed, stratify=df['is_stuck'])
     
-    # Save datasets
+    # save datasets
     train_path = output_path.parent / 'training_data.csv'
     test_path = output_path.parent / 'test_data.csv'
     
@@ -42,7 +42,7 @@ def main():
     print(f"✓ Saved training data: {train_path} ({len(train_df)} samples)")
     print(f"✓ Saved test data: {test_path} ({len(test_df)} samples)")
     
-    # Print statistics
+    # stdout stats
     print("\n" + "=" * 60)
     print("DATASET STATISTICS")
     print("=" * 60)
@@ -74,15 +74,14 @@ def main():
     print("\nStuck vs Productive Feature Comparison:")
     print("-" * 60)
     
-    for feature in feature_cols[:5]:  # Show first 5 features
+    for feature in feature_cols:  # Show first 5 features
         stuck_mean = df[df['is_stuck'] == 1][feature].mean()
         productive_mean = df[df['is_stuck'] == 0][feature].mean()
         print(f"{feature:25s} Stuck: {stuck_mean:6.2f}  |  Productive: {productive_mean:6.2f}")
     
-    print(f"\n... and {len(feature_cols) - 5} more features")
     
     print("\n" + "=" * 60)
-    print("✓ Dataset generation complete!")
+    print("Dataset generation complete")
     print("=" * 60)
 
 if __name__ == '__main__':
