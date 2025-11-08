@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).parent.parent / "ml"))
 
 # Import ML blackbox (graceful fallback if not available)
 try:
-    from ..ml.blackbox import StuckDetector
+    from blackbox import StuckDetector
     ML_AVAILABLE = True
     print("✅ ML blackbox system loaded successfully")
 except ImportError as e:
@@ -183,13 +183,25 @@ async def predict_stuck_ml(request: MLPredictionRequest):
     """
     ML-powered stuck detection using the blackbox system.
     
+    The ML model expects up to 18 different signal features for optimal prediction.
+    Missing features will be handled gracefully by the model.
+    
+    Expected signal features (18 total):
+    - Idle time: idle_time_total, idle_time_max
+    - Editing: edit_events, edit_velocity, backspace_ratio  
+    - Cursor: cursor_moves, cursor_distance, cursor_entropy
+    - Errors: error_events, unique_errors, error_repeat_count, error_persistence
+    - Execution: time_since_last_run, run_attempt_count
+    - Context: context_switches, focus_time_avg
+    - Comments: comment_keywords, comment_length_avg
+    
     Expects:
     {
         "signals": {
             "idle_time_total": 45.2,
             "edit_events": 23,
             "error_events": 5,
-            // ... other feature values
+            // ... up to 18 total features for best accuracy
         }
     }
     
@@ -211,6 +223,11 @@ async def predict_stuck_ml(request: MLPredictionRequest):
         )
     
     try:
+        # Log the incoming signals for debugging
+        print(f"🔍 Received signals ({len(request.signals)} total):")
+        for signal_name, signal_value in request.signals.items():
+            print(f"   {signal_name}: {signal_value}")
+        
         is_stuck = stuck_detector.is_stuck(request.signals)
         
         return JSONResponse(
