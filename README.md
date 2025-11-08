@@ -34,11 +34,11 @@ link api calls to mcp with documentation, perhaps locally downloaded docs
 
 **Frontend**
 
-popup with "were you stuck?" button
-"hint/stuck?" button
-professor dashboard to see where studnets are stuck
-student dashboard
-area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
+- popup with "were you stuck?" button
+- "hint/stuck?" button
+- professor dashboard to see where studnets are stuck
+- student dashboard
+- area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
 
 
 
