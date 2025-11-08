@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).parent.parent / "ml"))
 
 # Import ML blackbox (graceful fallback if not available)
 try:
-    from blackbox import StuckDetector
+    from ..ml.blackbox import StuckDetector
     ML_AVAILABLE = True
     print("✅ ML blackbox system loaded successfully")
 except ImportError as e:
