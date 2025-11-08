@@ -3,6 +3,43 @@
 **Study Helper** is a VS Code extension that helps students learn programming more effectively.  
 It detects when you’re stuck or making repeated errors and gently provides hints, documentation, or debugging tips — right inside your editor.
 
+
+# System Architecture
+```mermaid
+flowchart LR
+    A[Signals] --> B[ML Predictive Model]
+    B --> C[API Call]
+    C --> D[Documentation MCP]
+    D --> E[Frontend]
+```
+stuck signals:
+idle time: user stops typing for a while
+repetitive editing: repeated backspacing + retyping
+cursor thrashing: jumping around with minimal progress
+frequent and similar error messages
+no code execution attempts?
+tab switching (if trackable)
+specific comments: very long comments, terms such as "todo" "fix" etc
+
+ML integration of stuck signals:
+perhaps generate synthetic simulated data, train a small model (decision tree maybe), use as heuristic
+add a "stuck?" button and log user behavior to build dataset; with each popup, add a check and X if it accurately predicted user data, to train model better
+
+API integration:
+link api calls to mcp with documentation, perhaps locally downloaded docs
+
+Frontend: 
+popup with "were you stuck?" button
+"hint/stuck?" button
+professor dashboard to see where studnets are stuck
+student dashboard
+
+
+
+
+
+
+
 ---
 
 ## 🚀 Features
@@ -37,3 +74,4 @@ npm install
 code .
 
 4. Press F5 to launch the Extension Development Host (a new VS Code window with your extension active).
+
