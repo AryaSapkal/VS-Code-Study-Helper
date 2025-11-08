@@ -1,4 +1,6 @@
 import os
+import sys
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +9,18 @@ from dotenv import load_dotenv
 
 from dedalus_labs import Dedalus
 import database  # This imports our database.py file
+
+# Add ML directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent / "ml"))
+
+# Import ML blackbox (graceful fallback if not available)
+try:
+    from blackbox import StuckDetector
+    ML_AVAILABLE = True
+    print("✅ ML blackbox system loaded successfully")
+except ImportError as e:
+    ML_AVAILABLE = False
+    print(f"⚠️ ML system not available: {e}")
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,6 +41,16 @@ app = FastAPI()
 # Initialize Firebase (this happens when database.py is imported)
 # The `db` object is available from the database module
 print("Firebase Admin SDK initialized.")
+
+# Initialize ML detector
+stuck_detector = None
+if ML_AVAILABLE:
+    try:
+        stuck_detector = StuckDetector()
+        print("✅ ML stuck detector initialized")
+    except Exception as e:
+        print(f"⚠️ ML detector initialization failed: {e}")
+        ML_AVAILABLE = False
 
 
 # --- 2. CONFIGURE CORS ---
@@ -58,6 +82,16 @@ class LogRequest(BaseModel):
     languageId: str
     hint: str # The hint that was provided to the student
     codeSnippet: str
+
+class MLPredictionRequest(BaseModel):
+    """Data model for ML stuck prediction request."""
+    signals: dict  # Dictionary of feature_name -> value
+    
+class MLFeedbackRequest(BaseModel):
+    """Data model for ML feedback logging."""
+    signals: dict  # Dictionary of feature_name -> value
+    was_stuck: bool  # Ground truth
+    source: str = "manual"  # 'manual', 'confirmed', 'rejected'
 
 
 # --- 4. API ENDPOINT 1: GET HINT ---
@@ -142,135 +176,159 @@ async def log_stuck_event_to_db(request: LogRequest):
         )
 
 
-# --- 6. ML INTEGRATION ENDPOINTS (FOR ML TEAMMATE) ---
+# --- 6. ML ENDPOINTS ---
 
-class PredictionRequest(BaseModel):
-    """Request for ML model to predict if user is stuck."""
-    features: list[float]  # Feature vector (typing_speed, cursor_movements, etc.)
-    context: dict  # Additional context data
-
-class TrainingDataRequest(BaseModel):
-    """Training data collection for ML model."""
-    session_id: str
-    features: list[float]
-    user_feedback: bool  # True if user confirmed they were stuck
-    intervention_effective: bool | None = None  # Did the hint help?
-
-@app.post("/ml/predict-stuck")
-async def predict_stuck(request: PredictionRequest):
+@app.post("/predict-stuck")
+async def predict_stuck_ml(request: MLPredictionRequest):
     """
-    ML endpoint to predict if user is stuck.
-    Your ML teammate will implement the model logic here.
-    """
-    # TODO: Integrate with trained ML model
-    # For now, return a placeholder
-    return {
-        "is_stuck_probability": 0.7,
-        "confidence": 0.85,
-        "suggested_intervention": "hint"
-    }
-
-@app.post("/ml/training-data")
-async def collect_training_data(request: TrainingDataRequest):
-    """
-    Collect training data with user feedback.
-    Your ML teammate will use this to improve the model.
-    """
-    # TODO: Store training data for model improvement
-    # For now, just log it to the same collection
-    database.log_event({
-        "type": "training_data",
-        **request.model_dump()
-    })
-    return {"status": "success", "message": "Training data logged."}
-
-
-# --- 7. DASHBOARD ENDPOINTS (FOR FRONTEND TEAMMATE) ---
-
-@app.get("/dashboard/class-overview")
-async def get_class_overview(class_id: str | None = None):
-    """
-    Get overview statistics for professor dashboard.
-    Your frontend teammate will use this for the main dashboard.
-    """
-    # TODO: Query database for class statistics
-    return {
-        "total_students": 25,
-        "total_stuck_events": 150,
-        "avg_stuck_events_per_student": 6.0,
-        "most_problematic_concepts": [
-            {"concept": "async/await", "frequency": 45, "language": "javascript"},
-            {"concept": "list comprehensions", "frequency": 32, "language": "python"}
-        ],
-        "activity_timeline": [
-            {"date": "2025-11-08", "stuck_events": 12, "students_active": 18},
-            {"date": "2025-11-07", "stuck_events": 8, "students_active": 22}
-        ]
-    }
-
-@app.get("/dashboard/student-stats/{student_id}")
-async def get_student_statistics(student_id: str):
-    """
-    Get detailed statistics for a specific student.
-    Useful for individual student progress tracking.
-    """
-    # TODO: Query database for student-specific data
-    return {
-        "student_id": student_id,
-        "total_stuck_events": 12,
-        "avg_resolution_time": 4.5,
-        "most_common_stuck_areas": ["functions", "loops", "conditionals"],
-        "progress_trend": "improving"
-    }
-
-@app.get("/dashboard/stuck-events")
-async def get_stuck_events_summary(
-    start_date: str | None = None, 
-    end_date: str | None = None,
-    language_id: str | None = None
-):
-    """
-    Get filtered stuck events for analytics.
-    Frontend can use this for charts and detailed views.
-    """
-    # TODO: Query database with filters
-    return [
-        {
-            "date": "2025-11-08",
-            "language_id": "python",
-            "context_word": "for",
-            "heuristic": "idle",
-            "student_count": 3,
-            "avg_resolution_time": 5.2
-        },
-        {
-            "date": "2025-11-08",
-            "language_id": "javascript", 
-            "context_word": "async",
-            "heuristic": "cursor_thrashing",
-            "student_count": 2,
-            "avg_resolution_time": 8.7
+    ML-powered stuck detection using the blackbox system.
+    
+    Expects:
+    {
+        "signals": {
+            "idle_time_total": 45.2,
+            "edit_events": 23,
+            "error_events": 5,
+            // ... other feature values
         }
-    ]
-
-@app.get("/dashboard/real-time-activity")
-async def get_realtime_activity():
-    """
-    Get current active students and recent stuck events.
-    For real-time dashboard updates.
-    """
-    from datetime import datetime
-    # TODO: Query recent activity from database
-    return {
-        "active_students": 12,
-        "recent_stuck_events": 3,
-        "current_help_requests": 1,
-        "last_updated": datetime.now().isoformat()
     }
+    
+    Returns:
+    {
+        "is_stuck": true,
+        "confidence": 0.87,
+        "model_available": true
+    }
+    """
+    if not ML_AVAILABLE or not stuck_detector:
+        return JSONResponse(
+            content={
+                "is_stuck": False,
+                "confidence": 0.0,
+                "model_available": False,
+                "message": "ML model not available"
+            }
+        )
+    
+    try:
+        is_stuck = stuck_detector.is_stuck(request.signals)
+        
+        return JSONResponse(
+            content={
+                "is_stuck": is_stuck,
+                "confidence": 0.8,  # Blackbox doesn't expose confidence yet
+                "model_available": True,
+                "message": "Prediction successful"
+            }
+        )
+        
+    except Exception as e:
+        print(f"ML prediction error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"ML prediction failed: {str(e)}"
+        )
+
+@app.post("/log-ml-feedback")
+async def log_ml_feedback(request: MLFeedbackRequest):
+    """
+    Log feedback for ML model retraining.
+    
+    Expects:
+    {
+        "signals": { ... feature values ... },
+        "was_stuck": true,
+        "source": "manual"  // 'manual', 'confirmed', 'rejected'
+    }
+    """
+    if not ML_AVAILABLE or not stuck_detector:
+        return JSONResponse(
+            content={
+                "success": False,
+                "message": "ML model not available"
+            }
+        )
+    
+    try:
+        stuck_detector.log_feedback(
+            signals=request.signals,
+            was_stuck=request.was_stuck,
+            source=request.source
+        )
+        
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Feedback logged successfully"
+            }
+        )
+        
+    except Exception as e:
+        print(f"ML feedback logging error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to log ML feedback: {str(e)}"
+        )
+
+@app.post("/retrain-model")
+async def retrain_model(force: bool = False):
+    """
+    Trigger ML model retraining if enough feedback has been collected.
+    
+    Query params:
+    - force: boolean, force retraining even if threshold not met
+    """
+    if not ML_AVAILABLE or not stuck_detector:
+        return JSONResponse(
+            content={
+                "success": False,
+                "message": "ML model not available"
+            }
+        )
+    
+    try:
+        stuck_detector.retrain_if_needed(force=force)
+        
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Model retrain check completed"
+            }
+        )
+        
+    except Exception as e:
+        print(f"ML retraining error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Model retraining failed: {str(e)}"
+        )
 
 
-# --- 8. ROOT ENDPOINT (FOR TESTING) ---
+# --- 7. ROOT ENDPOINT (FOR TESTING) ---
 
 @app.get("/")
 def read_root():
-    return {"message": "Study Helper Backend is running!"}
+    return {
+        "message": "Study Helper Backend is running!",
+        "ml_available": ML_AVAILABLE,
+        "endpoints": {
+            "hint_generation": "/get-hint",
+            "event_logging": "/log-stuck-event", 
+            "ml_prediction": "/predict-stuck",
+            "ml_feedback": "/log-ml-feedback",
+            "ml_retraining": "/retrain-model"
+        }
+    }
+
+
+# --- 8. SERVER STARTUP ---
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting Study Helper Backend with ML integration...")
+    print(f"🤖 ML System Available: {ML_AVAILABLE}")
+    if stuck_detector:
+        print(f"🧠 ML Model Type: {getattr(stuck_detector, 'model_type', 'unknown')}")
+    print("📡 Server will be available at: http://localhost:8000")
+    print("📋 API Documentation at: http://localhost:8000/docs")
+    
+    uvicorn.run(app, host="0.0.0.0", port=8000)
