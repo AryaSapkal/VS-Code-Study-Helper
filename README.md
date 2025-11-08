@@ -38,6 +38,7 @@ popup with "were you stuck?" button
 "hint/stuck?" button
 professor dashboard to see where studnets are stuck
 student dashboard
+area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
 
 
 
