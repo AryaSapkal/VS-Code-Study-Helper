@@ -1,0 +1,40 @@
+# Core ML libraries
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+xgboost>=1.5.0
+scipy>=1.7.0
+
+# Model persistence
+joblib>=1.1.0
+
+# Database
+sqlalchemy>=1.4.0
+psycopg2-binary>=2.9.0  # For PostgreSQL (optional)
+
+# Web API
+flask>=2.0.0
+flask-cors>=3.0.10
+flask-socketio>=5.1.0  # For WebSocket support (optional)
+python-socketio>=5.4.0
+
+# Configuration
+pyyaml>=5.4.0
+
+# Logging
+python-json-logger>=2.0.0
+
+# Data validation
+pydantic>=1.9.0
+
+# Utilities
+python-dateutil>=2.8.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
+
+# Development
+black>=22.0.0  # Code formatting
+flake8>=4.0.0  # Linting
+mypy>=0.950    # Type checking
