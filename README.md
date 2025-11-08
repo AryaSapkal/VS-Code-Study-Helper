@@ -30,7 +30,7 @@ flowchart LR
 
 **API integration**
 
-link api calls to mcp with documentation, perhaps locally downloaded docs
+- link api calls to mcp with documentation, perhaps locally downloaded docs
 - hint hierarchy: first link documentation, then hint, then answer (maybe keep this on cooldown to not abuse)
 
 **Frontend**
