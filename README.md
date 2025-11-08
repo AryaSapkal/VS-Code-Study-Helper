@@ -12,6 +12,34 @@ flowchart LR
     C --> D[Documentation MCP]
     D --> E[Frontend]
 ```
+
+project/
+├── extension/              # TypeScript VS Code extension
+│   └── src/
+│       ├── extension.ts    # Main entry, signal collection
+│       ├── api.ts          # Backend API client
+│       └── ui/             # Hint panel, feedback widgets
+│
+├── backend/                # Python FastAPI backend
+│   ├── main.py             # FastAPI app
+│   ├── models/             # SQLAlchemy models
+│   ├── services/
+│   │   ├── signal_processor.py
+│   │   ├── predictor.py
+│   │   ├── hint_generator.py
+│   │   └── dashboard.py
+│   ├── routes/             # API endpoints
+│   └── database.py         # DB connection
+│
+├── ml/                     # ML pipeline
+│   ├── generate_dataset.py
+│   ├── train_model.py
+│   ├── evaluate.py
+│   └── models/             # Saved model artifacts
+│
+└── dashboard/              # Professor dashboard (optional web UI)
+    └── streamlit_app.py    # Quick dashboard with Streamlit
+    
 **Stuck Signals**
 
 - **Idle time**: user stops typing for a while
