@@ -14,19 +14,13 @@ flowchart LR
 ```
 **Stuck Signals**
 
-idle time: user stops typing for a while
-
-repetitive editing: repeated backspacing + retyping
-
-cursor thrashing: jumping around with minimal progress
-
-frequent and similar error messages
-
-no code execution attempts?
-
-tab switching (if trackable)
-
-specific comments: very long comments, terms such as "todo" "fix" etc
+- **Idle time**: user stops typing for a while
+- **Repetitive editing**: repeated backspacing + retyping
+- **Cursor thrashing**: jumping around with minimal progress
+- **Frequent and similar error messages**
+- **No code execution attempts**
+- **Tab switching** (if trackable)
+- **Specific comments**: very long comments, terms such as "todo" "fix" etc
 
 
 **ML integration of stuck signals**
