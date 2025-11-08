@@ -3,11 +3,18 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-import xgboost as xgb
 import joblib
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import json
 from pathlib import Path
+
+# Optional XGBoost import (graceful fallback if not available)
+try:
+    import xgboost as xgb
+    XGBOOST_AVAILABLE = True
+except (ImportError, Exception) as e:
+    XGBOOST_AVAILABLE = False
+    print(f"⚠️ XGBoost not available ({e.__class__.__name__}), using scikit-learn models only")
 
 class StuckPredictor:
     """Machine learning model for predicting if a student is stuck"""
@@ -22,21 +29,29 @@ class StuckPredictor:
         """
         self.model_type = model_type
         self.threshold = threshold
-        self.model = None
         self.scaler = StandardScaler()
         self.feature_names = None
         self.is_fitted = False
         
+        # Type annotation for model attribute
+        self.model: Union[RandomForestClassifier, GradientBoostingClassifier, LogisticRegression, Any]
+        
         # Initialize the appropriate model
         if model_type == 'xgboost':
-            self.model = xgb.XGBClassifier(
-                n_estimators=100,
-                max_depth=6,
-                learning_rate=0.1,
-                random_state=42,
-                eval_metric='logloss'
-            )
-        elif model_type == 'random_forest':
+            if not XGBOOST_AVAILABLE:
+                print("⚠️ XGBoost not available, falling back to RandomForest")
+                model_type = 'random_forest'
+                self.model_type = 'random_forest'
+            else:
+                self.model = xgb.XGBClassifier(
+                    n_estimators=100,
+                    max_depth=6,
+                    learning_rate=0.1,
+                    random_state=42,
+                    eval_metric='logloss'
+                )
+        
+        if model_type == 'random_forest':
             self.model = RandomForestClassifier(
                 n_estimators=100,
                 max_depth=10,
@@ -56,7 +71,14 @@ class StuckPredictor:
                 max_iter=1000
             )
         else:
-            raise ValueError(f"Unknown model_type: {model_type}")
+            print(f"⚠️ Unknown model_type: {model_type}, falling back to RandomForest")
+            self.model = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=10,
+                random_state=42,
+                n_jobs=-1
+            )
+            self.model_type = 'random_forest'
     
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """
