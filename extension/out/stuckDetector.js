@@ -185,11 +185,28 @@ class StuckDetector {
             heuristic = 'idle_too_long';
         if (this.signals.error_events > 3)
             heuristic = 'many_errors';
+        // Get enhanced context information
+        const selection = activeEditor.selection;
+        const currentLine = selection.active.line;
+        const currentColumn = selection.active.character;
+        const selectedText = activeEditor.document.getText(selection);
+        const currentLineText = activeEditor.document.lineAt(currentLine).text;
+        // Get diagnostic errors for context
+        const diagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
+        const errorMessages = diagnostics.map(diag => `Line ${diag.range.start.line + 1}: ${diag.message}`).join('; ');
         const hintRequest = {
             contextWord: contextWord,
             languageId: activeEditor.document.languageId,
             heuristic: heuristic,
-            codeSnippet: this.getSurroundingCode(activeEditor)
+            codeSnippet: this.getEnhancedContext(activeEditor),
+            cursorPosition: {
+                line: currentLine + 1,
+                column: currentColumn + 1
+            },
+            selectedText: selectedText,
+            currentLine: currentLineText,
+            errors: errorMessages,
+            fileName: activeEditor.document.fileName.split('/').pop() || 'untitled'
         };
         console.log('🔍 Hint request:', hintRequest);
         try {
@@ -312,6 +329,23 @@ class StuckDetector {
         const endLine = Math.min(editor.document.lineCount - 1, currentLine + 5);
         const range = new vscode.Range(startLine, 0, endLine, 0);
         return editor.document.getText(range);
+    }
+    getEnhancedContext(editor) {
+        const currentLine = editor.selection.active.line;
+        // Get much more context - 15 lines before and after
+        const startLine = Math.max(0, currentLine - 15);
+        const endLine = Math.min(editor.document.lineCount - 1, currentLine + 15);
+        const range = new vscode.Range(startLine, 0, endLine, 0);
+        const code = editor.document.getText(range);
+        // Add line numbers and cursor indicator for better AI context
+        const lines = code.split('\n');
+        const enhancedLines = lines.map((line, index) => {
+            const lineNumber = startLine + index + 1; // 1-indexed
+            const isCurrentLine = (startLine + index) === currentLine;
+            const prefix = isCurrentLine ? `${lineNumber}: >>> ` : `${lineNumber}: `;
+            return prefix + line;
+        });
+        return enhancedLines.join('\n');
     }
     toggleMonitoring() {
         if (this.monitoring) {

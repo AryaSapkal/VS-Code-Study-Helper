@@ -13,13 +13,13 @@ import database  # This imports our database.py file
 def generate_smart_fallback_hint(request):
     """Generate context-aware fallback hints when AI is unavailable"""
     
-    # Import our AI tools for enhanced hints
-    try:
+    # Skip ai_tools import - use direct fallback hints instead
+    if False:  # Disable the generic ai_tools
         from ai_tools import analyze_stuck_pattern, suggest_documentation
         pattern_hint = analyze_stuck_pattern(request.heuristic, request.contextWord)
         doc_hint = suggest_documentation(request.contextWord, request.languageId)
         return f"{pattern_hint} {doc_hint}"
-    except ImportError:
+    else:
         # Fallback to basic hints
         fallback_hints = {
             "repetitive_editing": f"What should '{request.contextWord}' actually do?",
@@ -176,24 +176,12 @@ async def get_hint_from_ai(request: HintRequest):
         )
 
     # Enhanced system prompt for better hints
-    system_prompt = f"""ANALYZE THIS CODE AND GIVE ONE SPECIFIC CODING FIX:
+    system_prompt = f"""You are a helpful coding tutor. A student appears to be stuck on: '{request.contextWord}' in {request.languageId}.
 
-CODE: {request.codeSnippet[:300]}
-LANGUAGE: {request.languageId}
-STUCK ON: '{request.contextWord}'
-WHY STUCK: {request.heuristic}
+Detection signal: {request.heuristic}
+Code: {request.codeSnippet[:300]}...
 
-Look for:
-- Missing closing parentheses, brackets, or quotes
-- Incorrect indentation (especially in Python)
-- Undefined variables or functions
-- Missing imports
-- Wrong syntax for loops/conditions
-- Type mismatches
-
-Respond with ONE line starting with "Try:" followed by the specific fix. Example: "Try: Add a closing parenthesis after 'print(i'"
-
-NO encouragement, NO explanations, just the direct fix."""
+Provide a helpful, specific suggestion or question to guide them forward. Be encouraging and constructive. Aim for 1-2 sentences that help them think through the problem rather than giving direct answers."""
 
     try:
         print(f"🚀 Calling Dedalus AI for enhanced hint generation...")
@@ -205,7 +193,7 @@ NO encouragement, NO explanations, just the direct fix."""
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a code debugging assistant. Analyze the provided code and give specific, actionable programming advice. Focus on concrete syntax, logic, or approach suggestions. Skip encouragement - just provide direct technical guidance."
+                    "content": "You are an expert programming tutor who helps students through guided questions rather than direct answers. Be encouraging, specific, and provide helpful context when needed. Aim for clear, actionable guidance that helps students learn."
                 },
                 {
                     "role": "user", 
@@ -275,7 +263,7 @@ NO encouragement, NO explanations, just the direct fix."""
 async def log_hint_feedback(request: HintFeedbackRequest):
     """
     Log feedback about whether a hint was helpful.
-    This data can be used to improve hint quality over time and ML model retraining.
+    This data can be used to improve hint quality over time.
     """
     print(f"📊 Received hint feedback:")
     print(f"  Helpful: {request.helpful}")
@@ -283,47 +271,8 @@ async def log_hint_feedback(request: HintFeedbackRequest):
     print(f"  Context: {request.context.get('contextWord', 'N/A')} in {request.context.get('languageId', 'N/A')}")
     print(f"  Timestamp: {request.timestamp}")
     
-    # Convert hint feedback to ML training data
-    # If hint was helpful, user was likely stuck (true positive)
-    # If hint was not helpful, either false positive or user learned quickly
-    try:
-        if ML_AVAILABLE and stuck_detector and request.context:
-            # Extract features from the context for ML training
-            signals = {}
-            
-            # Use available context data to reconstruct basic signals
-            if 'selection' in request.context:
-                signals['time_on_current_line'] = request.context.get('timeOnLine', 60.0)
-                signals['words_typed'] = request.context.get('wordsTyped', 5.0)
-                signals['error_rate'] = request.context.get('errorRate', 0.3)
-                signals['typing_speed'] = request.context.get('typingSpeed', 2.0)
-            
-            # Default reasonable values for missing signals
-            for key, default in [
-                ('time_on_current_line', 60.0), ('words_typed', 5.0),
-                ('error_rate', 0.3), ('typing_speed', 2.0), 
-                ('copy_paste_count', 0), ('idle_time_ratio', 0.4),
-                ('time_since_last_run', 120.0), ('runs_per_minute', 0.5)
-            ]:
-                if key not in signals:
-                    signals[key] = default
-            
-            # Interpret feedback: helpful hint suggests user was stuck
-            was_stuck = request.helpful  # True if helpful (user was stuck), False if not helpful
-            
-            # Log this for ML model retraining
-            stuck_detector.log_feedback(signals, was_stuck, request.helpful)
-            
-            # Check if we should retrain (every 100 entries)
-            try:
-                stuck_detector.retrain_if_needed()
-            except Exception as retrain_error:
-                print(f"⚠️ Retraining check failed: {retrain_error}")
-            
-    except Exception as ml_error:
-        print(f"⚠️ ML feedback logging failed: {ml_error}")
-    
     # TODO: Store feedback in database for analysis
+    # For now, just log it for debugging
     
     return {"status": "success", "message": "Feedback logged successfully"}
 
@@ -344,34 +293,27 @@ async def get_direct_answer(request: AnswerRequest):
             detail="Dedalus AI client not initialized. Check API key configuration."
         )
 
-    # More direct system prompt for answers
-    system_prompt = f"""You are a helpful programming tutor. A student is stuck on: '{request.contextWord}' in {request.languageId}.
-
-Detection signal: {request.heuristic}
-Code: {request.codeSnippet[:300]}...
-
-Provide a DIRECT, SPECIFIC SOLUTION to their problem. Give them the exact code or fix they need, with a brief explanation of why it works. Be concrete and actionable - this is not a hint, it's a solution."""
-
     try:
         print(f"🚀 Calling Dedalus AI for direct answer...")
         print(f"🔍 Context: {request.contextWord} in {request.languageId} (signal: {request.heuristic})")
         
-        # Enhanced Dedalus API call for direct answers
+        # Use same working API setup as hints - EXACT same configuration
+        # Simple direct API call with working Gemini model
         response = await dedalus_client.chat.completions.create(
-            model="gemini-2.5-flash-preview-09-2025",
+            model="gemini-2.5-flash-preview-09-2025",  # Same model as working hints
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a programming expert who provides direct, concrete solutions. Give specific code fixes and clear explanations."
+                    "content": "You are a helpful coding assistant. Provide specific, actionable advice to help fix programming issues."
                 },
                 {
                     "role": "user", 
-                    "content": system_prompt
+                    "content": f"Fix this Python code issue: {request.contextWord}. Code: {request.codeSnippet[:500]}"
                 }
             ],
-            max_tokens=400,              # Allow longer responses for solutions
-            temperature=0.3,             # Lower temperature for more precise answers
-            stream=False,
+            max_tokens=150,
+            temperature=0.3,
+            stream=False
         )
         
         print(f"🔍 Dedalus response received: {type(response)}")
@@ -403,8 +345,13 @@ Provide a DIRECT, SPECIFIC SOLUTION to their problem. Give them the exact code o
         
         # Ensure we have a valid response
         if not ai_answer or len(ai_answer.strip()) == 0:
-            print("⚠️ No AI answer extracted, using fallback")
-            ai_answer = f"Here's a direct approach to fix '{request.contextWord}': Check the documentation for {request.languageId} syntax, verify variable names match exactly, and ensure all brackets/parentheses are properly closed."
+            print("⚠️ No AI answer extracted, using specific fallback")
+            # Use our smart fallback system instead of generic message
+            from copy import deepcopy
+            fallback_request = deepcopy(request)
+            fallback_request.contextWord = request.contextWord
+            fallback_request.languageId = request.languageId  
+            ai_answer = generate_smart_fallback_hint(fallback_request)
         
         print(f"✅ Generated direct answer: {ai_answer[:100]}...")
         
