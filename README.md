@@ -73,27 +73,23 @@ flowchart LR
 
 **ML integration of stuck signals**
 
-- perhaps generate synthetic simulated data, train a small model (decision tree maybe), use as heuristic
-- add a "stuck?" button and log user behavior to build dataset; with each popup, add a check and X if it accurately predicted user data, to train model better
+- Synthetically generated simulated data, training XGBoost model
+- "Stuck?" button that logs user metrics; with each automatic popup, user confirmation on if was an accurate prediction
+- Model retrained every 100 new data points
 
 **API integration**
 
-- link api calls to mcp with documentation, perhaps locally downloaded docs
-- hint hierarchy: first link documentation, then hint, then answer (maybe keep this on cooldown to not abuse)
+- API calls linked to MCP with documentation
+- Hint hierarchy with progressively more informative hints
 
 **Frontend**
 
-- popup with "were you stuck?" button
-- "hint/stuck?" button
-- professor dashboard to see where studnets are stuck
-- student dashboard
-- area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
-
-
-
-
-
-
+- Popup with "were you stuck?" confirmation button
+- Manual "Stuck?" button
+- "Get answer" button with cooldown to minimize abuse
+- Professor dashboard to see where studnets are stuck
+- Student dashboard
+- Area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
 
 ---
 
@@ -118,15 +114,7 @@ flowchart LR
 
 ## 🛠️ Installation
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/<your-username>/vscode-study-helper.git
-   cd vscode-study-helper
-2. Install Dependencies
-npm install
+Now available on the VSCode Extension Marketplace! 
 
-3. Open the project in VS Code:
-code .
-
-4. Press F5 to launch the Extension Development Host (a new VS Code window with your extension active).
+<img width="299" height="181" alt="1" src="https://github.com/user-attachments/assets/dc3482d1-371c-455f-beda-a5ea7daedd3f" />
 
