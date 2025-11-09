@@ -176,12 +176,24 @@ async def get_hint_from_ai(request: HintRequest):
         )
 
     # Enhanced system prompt for better hints
-    system_prompt = f"""You are a helpful coding tutor. A student appears to be stuck on: '{request.contextWord}' in {request.languageId}.
+    system_prompt = f"""ANALYZE THIS CODE AND GIVE ONE SPECIFIC CODING FIX:
 
-Detection signal: {request.heuristic}
-Code: {request.codeSnippet[:300]}...
+CODE: {request.codeSnippet[:300]}
+LANGUAGE: {request.languageId}
+STUCK ON: '{request.contextWord}'
+WHY STUCK: {request.heuristic}
 
-Provide a helpful, specific suggestion or question to guide them forward. Be encouraging and constructive. Aim for 1-2 sentences that help them think through the problem rather than giving direct answers."""
+Look for:
+- Missing closing parentheses, brackets, or quotes
+- Incorrect indentation (especially in Python)
+- Undefined variables or functions
+- Missing imports
+- Wrong syntax for loops/conditions
+- Type mismatches
+
+Respond with ONE line starting with "Try:" followed by the specific fix. Example: "Try: Add a closing parenthesis after 'print(i'"
+
+NO encouragement, NO explanations, just the direct fix."""
 
     try:
         print(f"🚀 Calling Dedalus AI for enhanced hint generation...")
@@ -193,7 +205,7 @@ Provide a helpful, specific suggestion or question to guide them forward. Be enc
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are an expert programming tutor who helps students through guided questions rather than direct answers. Be encouraging, specific, and provide helpful context when needed. Aim for clear, actionable guidance that helps students learn."
+                    "content": "You are a code debugging assistant. Analyze the provided code and give specific, actionable programming advice. Focus on concrete syntax, logic, or approach suggestions. Skip encouragement - just provide direct technical guidance."
                 },
                 {
                     "role": "user", 
@@ -263,7 +275,7 @@ Provide a helpful, specific suggestion or question to guide them forward. Be enc
 async def log_hint_feedback(request: HintFeedbackRequest):
     """
     Log feedback about whether a hint was helpful.
-    This data can be used to improve hint quality over time.
+    This data can be used to improve hint quality over time and ML model retraining.
     """
     print(f"📊 Received hint feedback:")
     print(f"  Helpful: {request.helpful}")
@@ -271,8 +283,47 @@ async def log_hint_feedback(request: HintFeedbackRequest):
     print(f"  Context: {request.context.get('contextWord', 'N/A')} in {request.context.get('languageId', 'N/A')}")
     print(f"  Timestamp: {request.timestamp}")
     
+    # Convert hint feedback to ML training data
+    # If hint was helpful, user was likely stuck (true positive)
+    # If hint was not helpful, either false positive or user learned quickly
+    try:
+        if ML_AVAILABLE and stuck_detector and request.context:
+            # Extract features from the context for ML training
+            signals = {}
+            
+            # Use available context data to reconstruct basic signals
+            if 'selection' in request.context:
+                signals['time_on_current_line'] = request.context.get('timeOnLine', 60.0)
+                signals['words_typed'] = request.context.get('wordsTyped', 5.0)
+                signals['error_rate'] = request.context.get('errorRate', 0.3)
+                signals['typing_speed'] = request.context.get('typingSpeed', 2.0)
+            
+            # Default reasonable values for missing signals
+            for key, default in [
+                ('time_on_current_line', 60.0), ('words_typed', 5.0),
+                ('error_rate', 0.3), ('typing_speed', 2.0), 
+                ('copy_paste_count', 0), ('idle_time_ratio', 0.4),
+                ('time_since_last_run', 120.0), ('runs_per_minute', 0.5)
+            ]:
+                if key not in signals:
+                    signals[key] = default
+            
+            # Interpret feedback: helpful hint suggests user was stuck
+            was_stuck = request.helpful  # True if helpful (user was stuck), False if not helpful
+            
+            # Log this for ML model retraining
+            stuck_detector.log_feedback(signals, was_stuck, request.helpful)
+            
+            # Check if we should retrain (every 100 entries)
+            try:
+                stuck_detector.retrain_if_needed()
+            except Exception as retrain_error:
+                print(f"⚠️ Retraining check failed: {retrain_error}")
+            
+    except Exception as ml_error:
+        print(f"⚠️ ML feedback logging failed: {ml_error}")
+    
     # TODO: Store feedback in database for analysis
-    # For now, just log it for debugging
     
     return {"status": "success", "message": "Feedback logged successfully"}
 

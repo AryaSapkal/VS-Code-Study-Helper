@@ -151,8 +151,14 @@ class StuckPredictor:
         X_df = pd.DataFrame([X], columns=self.feature_names)
         probas = self.predict_proba(X_df)[0]
         
-        # Get probabilities
-        prob_not_stuck, prob_stuck = probas
+        # Handle case where only one class exists in training data
+        if len(probas) == 1:
+            # Only one class was seen during training
+            prob_stuck = probas[0]
+            prob_not_stuck = 1.0 - prob_stuck
+        else:
+            # Normal case with both classes
+            prob_not_stuck, prob_stuck = probas
         
         # Make prediction
         is_stuck = prob_stuck >= self.threshold
@@ -176,21 +182,21 @@ class StuckPredictor:
             0.20 * distance_confidence
         )
         
-        # 5. Educational context bias - better to catch stuck students than miss them
+        # 5. Educational context bias - HEAVILY favor giving hints over missing stuck students
         if is_stuck:
-            sensitivity_boost = 0.15 + (0.1 * prob_stuck)  # More boost for higher probabilities
+            sensitivity_boost = 0.30 + (0.20 * prob_stuck)  # Massive boost for stuck predictions
             combined_confidence = min(1.0, base_confidence + sensitivity_boost)
         else:
-            combined_confidence = base_confidence * 0.9  # Slight reduction to prefer caution
+            combined_confidence = base_confidence * 0.70  # Much lower confidence when not giving hints
         
-        # 6. More aggressive confidence levels (lower thresholds for higher levels)
-        if combined_confidence >= 0.75:
+        # 6. Very aggressive confidence levels - almost everything should trigger hints
+        if combined_confidence >= 0.50:
             confidence_level = 'very_high'
-        elif combined_confidence >= 0.55:
+        elif combined_confidence >= 0.30:
             confidence_level = 'high'
-        elif combined_confidence >= 0.35:
+        elif combined_confidence >= 0.15:
             confidence_level = 'moderate'
-        elif combined_confidence >= 0.20:
+        elif combined_confidence >= 0.05:
             confidence_level = 'low'
         else:
             confidence_level = 'very_low'

@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "timestamp": "2025-11-09T02:20:59.933347",
+      "signals": {
+        "time_on_current_line": 60.0,
+        "words_typed": 5.0,
+        "error_rate": 0.3,
+        "typing_speed": 2.0,
+        "copy_paste_count": 0,
+        "idle_time_ratio": 0.4,
+        "time_since_last_run": 120.0,
+        "runs_per_minute": 0.5
+      },
+      "was_stuck": true,
+      "helpful": true
+    }
+  ]
+}
