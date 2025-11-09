@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).parent.parent / "ml"))
 
 # Import ML blackbox (graceful fallback if not available)
 try:
-    from blackbox import StuckDetector
+    from ml.blackbox import StuckDetector
     ML_AVAILABLE = True
     print("✅ ML blackbox system loaded successfully")
 except ImportError as e:
@@ -270,7 +270,7 @@ async def log_ml_feedback(request: MLFeedbackRequest):
         stuck_detector.log_feedback(
             signals=request.signals,
             was_stuck=request.was_stuck,
-            source=request.source
+            # source=request.source
         )
         
         return JSONResponse(
