@@ -114,5 +114,6 @@ flowchart LR
 ## 🛠️ Installation
 
 Now available on the VSCode Extension Marketplace! 
+
 <img width="299" height="181" alt="1" src="https://github.com/user-attachments/assets/dc3482d1-371c-455f-beda-a5ea7daedd3f" />
 
