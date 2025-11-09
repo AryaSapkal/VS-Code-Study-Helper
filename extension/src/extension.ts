@@ -19,11 +19,15 @@ export function activate(context: vscode.ExtensionContext) {
         stuckDetector.getHint();
     });
     
+    const reportStuck = vscode.commands.registerCommand('stuckDetector.reportStuck', () => {
+        stuckDetector.reportStuck();
+    });
+    
     const toggleMonitoring = vscode.commands.registerCommand('stuckDetector.toggleMonitoring', () => {
         stuckDetector.toggleMonitoring();
     });
     
-    context.subscriptions.push(checkStatus, getHint, toggleMonitoring, stuckDetector);
+    context.subscriptions.push(checkStatus, getHint, reportStuck, toggleMonitoring, stuckDetector);
 }
 
 export function deactivate() {
