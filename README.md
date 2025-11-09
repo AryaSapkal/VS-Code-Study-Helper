@@ -16,32 +16,48 @@ flowchart LR
 # Project Structure
 
 ```
-project/
-├── extension/              # TypeScript VS Code extension
-│   └── src/
-│       ├── extension.ts    # Main entry, signal collection
-│       ├── api.ts          # Backend API client
-│       └── ui/             # Hint panel, feedback widgets
-│
-├── backend/                # Python FastAPI backend
-│   ├── main.py             # FastAPI app
-│   ├── models/             # SQLAlchemy models
-│   ├── services/
-│   │   ├── signal_processor.py
-│   │   ├── predictor.py
-│   │   ├── hint_generator.py
-│   │   └── dashboard.py
-│   ├── routes/             # API endpoints
-│   └── database.py         # DB connection
-│
-├── ml/                     # ML pipeline
-│   ├── generate_dataset.py
-│   ├── train_model.py
-│   ├── evaluate.py
-│   └── models/             # Saved model artifacts
-│
-└── dashboard/              # Professor dashboard (optional web UI)
-    └── streamlit_app.py    # Quick dashboard with Streamlit
+.
+├── backend
+│   ├── data
+│   │   └── synthetic
+│   │       └── training_data.csv
+│   ├── database.py
+│   ├── main.py
+│   ├── models
+│   │   └── stuck_predictor_v1.pkl
+│   ├── requirements.txt
+│   ├── test_api.py
+│   └── test_ml.py
+├── data
+│   ├── feedback.jsonl
+│   └── synthetic
+│       └── training_data.csv
+├── extension
+│   ├── out
+│   │   ├── extension.js
+│   │   ├── extension.js.map
+│   │   ├── stuckDetector.js
+│   │   └── stuckDetector.js.map
+│   ├── package.json
+│   ├── src
+│   │   ├── extension.ts
+│   │   └── stuckDetector.ts
+│   └── tsconfig.json
+├── ml
+│   ├── blackbox.py
+│   ├── data
+│   │   └── synthetic
+│   │       ├── test_data.csv
+│   │       └── training_data.csv
+│   ├── features.py
+│   ├── generation_script.py
+│   ├── models.py
+│   ├── retrain_model.py
+│   └── synthetic_data_generation.py
+├── models
+│   └── stuck_predictor_v1.pkl
+├── README.md
+└── requirements.txt
 ```
     
 **Stuck Signals**
