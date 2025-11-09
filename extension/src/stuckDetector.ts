@@ -53,7 +53,7 @@ export class StuckDetector {
     private stuckKeywords = ['todo', 'fix', 'fixme', 'bug', 'help', 'stuck', 'broken', 'issue'];
     
     constructor() {
-        console.log('🔧 StuckDetector initialized');
+        console.log('Nudge.ai initialized');
         this.signals = this.createEmptySignals();
         this.setupEventListeners();
         this.resetSignals();

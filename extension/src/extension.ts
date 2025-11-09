@@ -2,13 +2,13 @@ import * as vscode from 'vscode';
 import { StuckDetector } from './stuckDetector';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('🚀 Stuck Detector extension is now active!');
+    console.log('Nudge.ai extension is now active!');
     
     // Initialize the stuck detector
     const stuckDetector = new StuckDetector();
     
     // Show welcome message
-    vscode.window.showInformationMessage('🤖 Stuck Detector is ready to help you code!');
+    vscode.window.showInformationMessage("Nudge.ai is ready to help you code!');
     
     // Register commands
     const checkStatus = vscode.commands.registerCommand('stuckDetector.checkStatus', () => {
