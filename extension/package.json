@@ -24,6 +24,10 @@
       {
         "command": "stuckDetector.toggleMonitoring",
         "title": "Stuck Detector: Toggle Monitoring"
+      },
+      {
+        "command": "stuckDetector.simulateStuck",
+        "title": "Stuck Detector: Simulate Stuck (Testing)"
       }
     ],
     "configuration": {
@@ -36,7 +40,7 @@
         },
         "stuckDetector.monitoringInterval": {
           "type": "number",
-          "default": 30000,
+          "default": 20000,
           "description": "Monitoring interval in milliseconds"
         }
       }
