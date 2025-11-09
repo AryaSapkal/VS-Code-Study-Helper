@@ -19,7 +19,7 @@ except (ImportError, Exception) as e:
 class StuckPredictor:
     """Machine learning model for predicting if a student is stuck"""
     
-    def __init__(self, model_type: str = 'xgboost', threshold: float = 0.7):
+    def __init__(self, model_type: str = 'xgboost', threshold: float = 0.35):
         """
         Initialize the stuck predictor
         
@@ -88,7 +88,11 @@ class StuckPredictor:
             X: Feature DataFrame
             y: Target labels (1 = stuck, 0 = productive)
         """
-        self.feature_names = list(X.columns)
+        # Store feature names for later use
+        if hasattr(X, 'columns'):
+            self.feature_names = list(X.columns)
+        else:
+            self.feature_names = [f'feature_{i}' for i in range(X.shape[1])]
         
         # Scale features
         X_scaled = self.scaler.fit_transform(X)
@@ -117,56 +121,93 @@ class StuckPredictor:
     
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
-        Predict probability of being stuck
+        Get prediction probabilities
         
         Args:
-            X: Feature DataFrame
+            X: Feature DataFrame or numpy array
             
         Returns:
-            Array of shape (n_samples, 2) with [prob_productive, prob_stuck]
+            Array of [prob_not_stuck, prob_stuck] for each sample
         """
-        if not self.is_fitted:
-            raise RuntimeError("Model must be fitted before prediction")
+        # Convert to DataFrame if needed
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X, columns=self.feature_names)
         
-        # Ensure features are in correct order
         X = X[self.feature_names]
-        
-        # Scale features
         X_scaled = self.scaler.transform(X)
-        
-        # Predict
         return self.model.predict_proba(X_scaled)
     
-    def predict_single(self, features: Dict[str, float]) -> Dict[str, Any]:
+    def predict_single(self, X: np.ndarray) -> Dict[str, Any]:
         """
-        Predict for a single sample with detailed output
+        Make prediction with enhanced confidence for single sample
         
         Args:
-            features: Dictionary of feature_name -> value
+            X: Single sample feature array
             
         Returns:
-            Dictionary with prediction, probability, and confidence
+            Dictionary with prediction, probability, confidence metrics
         """
-        # Convert to DataFrame
-        X = pd.DataFrame([features])
+        # Convert to DataFrame for prediction  
+        X_df = pd.DataFrame([X], columns=self.feature_names)
+        probas = self.predict_proba(X_df)[0]
         
         # Get probabilities
-        probas = self.predict_proba(X)[0]
-        prob_stuck = probas[1]
+        prob_not_stuck, prob_stuck = probas
         
         # Make prediction
         is_stuck = prob_stuck >= self.threshold
         
-        # Calculate confidence (distance from threshold)
-        confidence = abs(prob_stuck - self.threshold) / (1 - self.threshold) if is_stuck else abs(prob_stuck - self.threshold) / self.threshold
-        confidence = min(confidence, 1.0)
+        # 1. Entropy-based confidence (how decisive the prediction is)
+        # High entropy = low confidence (uncertain prediction)
+        entropy = -(prob_stuck * np.log2(prob_stuck + 1e-10) + prob_not_stuck * np.log2(prob_not_stuck + 1e-10))
+        max_entropy = 1.0  # Maximum entropy for binary classification
+        entropy_confidence = 1.0 - (entropy / max_entropy)
+        
+        # 2. Distance from threshold confidence  
+        distance_confidence = abs(prob_stuck - self.threshold) * 2  # Scale to 0-1 range
+        
+        # 3. Probability magnitude confidence (how far from 0.5)
+        magnitude_confidence = 2 * abs(prob_stuck - 0.5)  # 0 when prob=0.5, 1 when prob=0 or 1
+        
+        # 4. Combine metrics (weighted average)
+        base_confidence = (
+            0.50 * magnitude_confidence + 
+            0.30 * entropy_confidence + 
+            0.20 * distance_confidence
+        )
+        
+        # 5. Educational context bias - better to catch stuck students than miss them
+        if is_stuck:
+            sensitivity_boost = 0.15 + (0.1 * prob_stuck)  # More boost for higher probabilities
+            combined_confidence = min(1.0, base_confidence + sensitivity_boost)
+        else:
+            combined_confidence = base_confidence * 0.9  # Slight reduction to prefer caution
+        
+        # 6. More aggressive confidence levels (lower thresholds for higher levels)
+        if combined_confidence >= 0.75:
+            confidence_level = 'very_high'
+        elif combined_confidence >= 0.55:
+            confidence_level = 'high'
+        elif combined_confidence >= 0.35:
+            confidence_level = 'moderate'
+        elif combined_confidence >= 0.20:
+            confidence_level = 'low'
+        else:
+            confidence_level = 'very_low'
         
         return {
-            'is_stuck': bool(is_stuck),
-            'probability_stuck': float(prob_stuck),
-            'probability_productive': float(probas[0]),
-            'confidence': float(confidence),
-            'threshold': self.threshold
+            'prediction': int(is_stuck),
+            'probability': float(prob_stuck),
+            'confidence_score': float(combined_confidence),
+            'confidence_level': confidence_level,
+            'confidence_breakdown': {
+                'magnitude_confidence': float(magnitude_confidence),
+                'entropy_confidence': float(entropy_confidence),
+                'distance_confidence': float(distance_confidence),
+                'base_confidence': float(base_confidence),
+                'sensitivity_boost': float(0.15 + (0.1 * prob_stuck)) if is_stuck else 0.0,
+                'final_confidence': float(combined_confidence)
+            }
         }
     
     def get_feature_importance(self) -> pd.DataFrame:
@@ -191,6 +232,52 @@ class StuckPredictor:
         if not 0 <= threshold <= 1:
             raise ValueError("Threshold must be between 0 and 1")
         self.threshold = threshold
+    
+    def adaptive_threshold(self, recent_feedback: list, target_precision: float = 0.8) -> float:
+        """
+        Dynamically adjust threshold based on recent feedback to optimize precision/recall
+        
+        Args:
+            recent_feedback: List of (probability, true_label) tuples from recent predictions
+            target_precision: Desired precision level (0-1)
+            
+        Returns:
+            Optimized threshold value
+        """
+        if len(recent_feedback) < 10:  # Need minimum samples
+            return self.threshold
+            
+        # Convert to arrays
+        probabilities = [item[0] for item in recent_feedback]
+        true_labels = [item[1] for item in recent_feedback]
+        
+        # Test different thresholds
+        best_threshold = self.threshold
+        best_score = 0.0
+        
+        for test_threshold in np.arange(0.3, 0.8, 0.05):  # Test range 0.30-0.75
+            predictions = [1 if p >= test_threshold else 0 for p in probabilities]
+            
+            # Calculate metrics
+            tp = sum(1 for pred, true in zip(predictions, true_labels) if pred == 1 and true == 1)
+            fp = sum(1 for pred, true in zip(predictions, true_labels) if pred == 1 and true == 0)
+            fn = sum(1 for pred, true in zip(predictions, true_labels) if pred == 0 and true == 1)
+            
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            
+            # F1 score with precision weighting for early detection
+            if precision >= target_precision:
+                f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+                
+                # Bonus for meeting precision target
+                score = f1_score + 0.1 * (precision - target_precision)
+                
+                if score > best_score:
+                    best_score = score
+                    best_threshold = test_threshold
+        
+        return best_threshold
     
     def save(self, path: str):
         """Save model to disk"""

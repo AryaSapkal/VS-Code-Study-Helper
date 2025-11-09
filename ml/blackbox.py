@@ -9,12 +9,17 @@ Simple interface:
 
 import json
 import joblib
+import numpy as np
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional, Literal
+from typing import Dict, Optional, Literal, Any
 import pandas as pd
-from models import StuckPredictor
-from features import get_feature_names
+try:
+    from .models import StuckPredictor
+    from .features import get_feature_names
+except ImportError:
+    from models import StuckPredictor
+    from features import get_feature_names
 from sklearn.model_selection import train_test_split
 
 
@@ -100,10 +105,14 @@ class StuckDetector:
         # Fill in missing signals with defaults
         signals = self._fill_defaults(signals)
         
-        # Make prediction
-        prediction = self.model.predict_single(signals)
+        # Convert signals dict to numpy array for model
+        feature_names = get_feature_names()
+        features = np.array([signals[name] for name in feature_names])
         
-        return prediction['is_stuck']
+        # Make prediction
+        prediction = self.model.predict_single(features)
+        
+        return prediction['prediction'] == 1
     
     def get_stuck_probability(self, signals: Dict[str, float]) -> float:
         """
@@ -116,8 +125,40 @@ class StuckDetector:
             Float between 0 and 1 (probability of being stuck)
         """
         signals = self._fill_defaults(signals)
-        prediction = self.model.predict_single(signals)
-        return prediction['probability_stuck']
+        
+        # Convert signals dict to numpy array for model
+        feature_names = get_feature_names()
+        features = np.array([signals[name] for name in feature_names])
+        
+        prediction = self.model.predict_single(features)
+        return prediction['probability']
+    
+    def predict_full(self, signals: Dict[str, float]) -> Dict[str, Any]:
+        """
+        Get full prediction with enhanced confidence analysis
+        
+        Args:
+            signals: Dictionary of signal_name -> value
+            
+        Returns:
+            Dictionary with prediction, probability, confidence metrics
+        """
+        signals = self._fill_defaults(signals)
+        
+        # Convert signals dict to numpy array for model
+        try:
+            from .features import get_feature_names
+        except ImportError:
+            from features import get_feature_names
+        feature_names = get_feature_names()
+        
+        # Extract features in correct order
+        features = np.array([signals[name] for name in feature_names])
+        
+        # Get enhanced prediction
+        prediction = self.model.predict_single(features)
+        
+        return prediction
     
     def log_feedback(
         self,
@@ -202,7 +243,7 @@ class StuckDetector:
             X, y, test_size=0.2, stratify=y, random_state=42
         )
         
-        new_model = StuckPredictor(model_type='xgboost', threshold=0.70)
+        new_model = StuckPredictor(model_type='xgboost', threshold=0.35)  # Even lower threshold - better false positive than false negative
         new_model.fit(X_train, y_train)
         
         # Evaluate
@@ -253,7 +294,7 @@ class StuckDetector:
             X, y, test_size=0.2, stratify=y, random_state=42
         )
         
-        self.model = StuckPredictor(model_type='xgboost', threshold=0.70)
+        self.model = StuckPredictor(model_type='xgboost', threshold=0.35)  # Even lower threshold - better false positive than false negative
         self.model.fit(X_train, y_train)
         
         # Evaluate
@@ -322,6 +363,32 @@ class StuckDetector:
         
         with open(self.feedback_path, 'r') as f:
             return sum(1 for line in f if line.strip())
+    
+    def _load_recent_feedback(self, limit: int = 50) -> pd.DataFrame:
+        """Load recent feedback samples for threshold optimization"""
+        if not self.feedback_path.exists():
+            return pd.DataFrame()
+        
+        feedback_list = []
+        with open(self.feedback_path, 'r') as f:
+            lines = f.readlines()
+            # Get the most recent lines
+            for line in lines[-limit:]:
+                if line.strip():
+                    try:
+                        feedback = json.loads(line.strip())
+                        # Add predicted probability for threshold optimization
+                        if 'signals' in feedback:
+                            predicted = self.model.predict_single(feedback['signals'])
+                            feedback['predicted_probability'] = predicted['probability_stuck']
+                        feedback_list.append(feedback)
+                    except json.JSONDecodeError:
+                        continue
+        
+        if not feedback_list:
+            return pd.DataFrame()
+            
+        return pd.DataFrame(feedback_list)
     
     def get_stats(self) -> Dict:
         """Get detector statistics"""

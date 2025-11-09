@@ -5,8 +5,16 @@ const vscode = require("vscode");
 const stuckDetector_1 = require("./stuckDetector");
 function activate(context) {
     console.log('🚀 Stuck Detector extension is now active!');
-    // Initialize the stuck detector
-    const stuckDetector = new stuckDetector_1.StuckDetector();
+    // Create status bar item for manual hint requests
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.text = "💡 Get Hint";
+    statusBarItem.tooltip = "Click to request a coding hint";
+    statusBarItem.command = 'stuckDetector.getHint';
+    statusBarItem.show();
+    // Initialize the stuck detector with status bar reference
+    const stuckDetector = new stuckDetector_1.StuckDetector(statusBarItem);
+    // Add to subscriptions for cleanup
+    context.subscriptions.push(statusBarItem);
     // Start monitoring automatically after a short delay
     setTimeout(() => {
         stuckDetector.toggleMonitoring();
@@ -23,7 +31,10 @@ function activate(context) {
     const toggleMonitoring = vscode.commands.registerCommand('stuckDetector.toggleMonitoring', () => {
         stuckDetector.toggleMonitoring();
     });
-    context.subscriptions.push(checkStatus, getHint, toggleMonitoring, stuckDetector);
+    const simulateStuck = vscode.commands.registerCommand('stuckDetector.simulateStuck', () => {
+        stuckDetector.simulateStuckBehavior();
+    });
+    context.subscriptions.push(checkStatus, getHint, toggleMonitoring, simulateStuck, stuckDetector);
 }
 exports.activate = activate;
 function deactivate() {
