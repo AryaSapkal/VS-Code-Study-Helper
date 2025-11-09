@@ -86,6 +86,7 @@ flowchart LR
 
 - Popup with "were you stuck?" confirmation button
 - Manual "Stuck?" button
+- "Get answer" button with cooldown to minimize abuse
 - Professor dashboard to see where studnets are stuck
 - Student dashboard
 - Area to input class ID (or maybe track github classroom) and upload directory for documentation for LLM to pull from
