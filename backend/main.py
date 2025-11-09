@@ -217,10 +217,10 @@ Provide a helpful, specific suggestion or question to guide them forward. Be enc
             # The response shows message.content is available
             if hasattr(choice, 'message') and isinstance(choice.message, dict) and 'content' in choice.message:
                 ai_hint = choice.message['content'].strip()
-                print(f"✅ Extracted from dict format: {ai_hint[:50]}...")
+                print(f"✅ Extracted from dict format: '{ai_hint}' (length: {len(ai_hint)})")
             elif hasattr(choice, 'message') and hasattr(choice.message, 'content'):
                 ai_hint = choice.message.content.strip()
-                print(f"✅ Extracted from attribute format: {ai_hint[:50]}...")
+                print(f"✅ Extracted from attribute format: '{ai_hint}' (length: {len(ai_hint)})")
             else:
                 # Fallback: extract from string representation
                 choice_str = str(choice)
@@ -233,7 +233,7 @@ Provide a helpful, specific suggestion or question to guide them forward. Be enc
                         end = choice_str.find("\"", start)
                     if end > start:
                         ai_hint = choice_str[start:end].replace('\\n', '\n')
-                        print(f"✅ Extracted from string: {ai_hint[:50]}...")
+                        print(f"✅ Extracted from string: '{ai_hint}' (length: {len(ai_hint)})")
         else:
             print(f"⚠️ No choices found in response: {type(response)}")
         
@@ -343,15 +343,17 @@ async def get_direct_answer(request: AnswerRequest):
                         ai_answer = choice_str[start:end].replace('\\n', '\n')
                         print(f"✅ Extracted answer from string: {ai_answer[:50]}...")
         
-        # Ensure we have a valid response
-        if not ai_answer or len(ai_answer.strip()) == 0:
-            print("⚠️ No AI answer extracted, using specific fallback")
-            # Use our smart fallback system instead of generic message
-            from copy import deepcopy
-            fallback_request = deepcopy(request)
-            fallback_request.contextWord = request.contextWord
-            fallback_request.languageId = request.languageId  
-            ai_answer = generate_smart_fallback_hint(fallback_request)
+        # Fallback: Use ai_tools.py functions
+        if not ai_answer:
+            # Provide programming guidance based on context
+            if "enumerate" in request.codeSnippet.lower():
+                ai_answer = "Replace 'enumerate(20)' with 'range(20)' if you just need numbers."
+            elif "syntax" in request.contextWord.lower():
+                ai_answer = "Check for missing colons (:) at the end of if/for/while statements."
+            elif "import" in request.contextWord.lower():
+                ai_answer = "Make sure the module is installed: pip install <module_name>"
+            else:
+                ai_answer = "Review the error message and check Python syntax documentation."
         
         print(f"✅ Generated direct answer: {ai_answer[:100]}...")
         

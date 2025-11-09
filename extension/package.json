@@ -1,7 +1,9 @@
 {
-  "name": "stuck-detector",
-  "displayName": "Stuck Detector",
-  "description": "AI-powered stuck detection for VS Code",
+  "name": "nudge-ai-stuck-detector",
+  "displayName": "Nudge.ai",
+  "description": "Stop the copy-paste cycle. Get unstuck with thoughtful hints that help you learn, not just build.",
+  "publisher": "nudgeai",
+  "icon": "assets/icon.png",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.74.0"
