@@ -7,6 +7,10 @@ function activate(context) {
     console.log('🚀 Stuck Detector extension is now active!');
     // Initialize the stuck detector
     const stuckDetector = new stuckDetector_1.StuckDetector();
+    // Start monitoring automatically after a short delay
+    setTimeout(() => {
+        stuckDetector.toggleMonitoring();
+    }, 2000);
     // Show welcome message
     vscode.window.showInformationMessage('🤖 Stuck Detector is ready to help you code!');
     // Register commands

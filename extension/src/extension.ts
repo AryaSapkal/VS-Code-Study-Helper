@@ -7,6 +7,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize the stuck detector
     const stuckDetector = new StuckDetector();
     
+    // Start monitoring automatically after a short delay
+    setTimeout(() => {
+        stuckDetector.toggleMonitoring();
+    }, 2000);
+    
     // Show welcome message
     vscode.window.showInformationMessage('🤖 Stuck Detector is ready to help you code!');
     
