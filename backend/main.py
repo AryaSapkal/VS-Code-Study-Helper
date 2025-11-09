@@ -11,16 +11,30 @@ from dedalus_labs import Dedalus
 import database  # This imports our database.py file
 
 # Add ML directory to path for imports
-sys.path.append(str(Path(__file__).parent.parent / "ml"))
+ml_path = str(Path(__file__).parent.parent / "ml")
+print(f"🔍 Adding ML path: {ml_path}")
+sys.path.insert(0, ml_path)  # Use insert(0, ...) to prioritize this path
+print(f"🐍 Updated Python path with ML directory")
 
 # Import ML blackbox (graceful fallback if not available)
 try:
-    from ml.blackbox import StuckDetector
+    from blackbox import StuckDetector
     ML_AVAILABLE = True
     print("✅ ML blackbox system loaded successfully")
 except ImportError as e:
     ML_AVAILABLE = False
     print(f"⚠️ ML system not available: {e}")
+    print(f"⚠️ Python path: {sys.path}")
+    
+# Initialize ML detector if available
+stuck_detector = None
+if ML_AVAILABLE:
+    try:
+        stuck_detector = StuckDetector()
+        print("🎯 ML StuckDetector initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize StuckDetector: {e}")
+        ML_AVAILABLE = False
 
 # Load environment variables from .env file
 load_dotenv()
@@ -42,15 +56,7 @@ app = FastAPI()
 # The `db` object is available from the database module
 print("Firebase Admin SDK initialized.")
 
-# Initialize ML detector
-stuck_detector = None
-if ML_AVAILABLE:
-    try:
-        stuck_detector = StuckDetector()
-        print("✅ ML stuck detector initialized")
-    except Exception as e:
-        print(f"⚠️ ML detector initialization failed: {e}")
-        ML_AVAILABLE = False
+# ML detector already initialized above
 
 
 # --- 2. CONFIGURE CORS ---
