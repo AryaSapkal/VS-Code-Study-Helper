@@ -1,6 +1,7 @@
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore import SERVER_TIMESTAMP
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -44,7 +45,7 @@ def log_event(event_data: dict):
 
     try:
         # Add a server-side timestamp for accurate logging
-        event_data['timestamp'] = firestore.SERVER_TIMESTAMP
+        event_data['timestamp'] = SERVER_TIMESTAMP
         
         # Add the data as a new document to the "stuckEvents" collection
         db.collection("stuckEvents").add(event_data)

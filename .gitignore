@@ -8,6 +8,10 @@
 serviceAccountKey.json
 firebase-adminsdk-*.json
 
+# Node modules
+extension/node_modules/
+node_modules/
+
 # Python
 __pycache__/
 *.py[cod]
