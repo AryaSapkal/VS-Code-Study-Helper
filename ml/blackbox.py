@@ -407,3 +407,11 @@ if __name__ == '__main__':
     print(f"   Samples until retrain: {stats['feedback_until_retrain']}")
     
     print("\n✅ Done! The model will auto-retrain after 100 feedback samples.")
+
+
+
+    # test out printing features
+    # test out blackbox with test suite
+    # test out backend with test suite?
+    # make frontend
+    # test everything
